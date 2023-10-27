@@ -9,8 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.437.0",
+    "@coral-xyz/anchor": "^0.29.0",
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
+    "@metaplex-foundation/mpl-token-metadata": "^3.1.0",
+    "@metaplex-foundation/umi": "^0.8.9",
+    "@metaplex-foundation/umi-bundle-defaults": "^0.8.9",
+    "@metaplex-foundation/umi-signer-wallet-adapters": "^0.8.9",
+    "@metaplex-foundation/umi-uploader-aws": "^0.8.9",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.34",
@@ -19,7 +26,8 @@
     "@tailwindcss/forms": "^0.5.6",
     "next": "14.0.0",
     "react": "^18.2.0",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-hot-toast": "^2.4.1"
   },
   "devDependencies": {
     "@types/node": "^20",
