@@ -37,7 +37,7 @@ export default function NavBar() {
                 className="flex items-center min-w-full flex-none gap-x-6 px-2 text-sm font-semibold leading-6 text-gray-400"
               >
                 <Image src="/favicon.ico" width="30" height="30" alt="nozomi" />
-                <span className="ml-1 font-semibold text-xl">TRUSTMEBRO</span>
+                <span className="ml-1 font-semibold text-xl">TRUSTMEBRO DEVNET</span>
                 {tabs.map((tab) => (
                   <li key={tab.name}>
                     <Link href={tab.href} className={router.asPath === tab.href ? 'text-indigo-400' : ''}>
@@ -47,7 +47,6 @@ export default function NavBar() {
                 ))}
               </ul>
             </nav>
-
             <WalletConnect className="bg-primary text-white"/>
           </div>
         </div>

@@ -1,17 +1,18 @@
 import { PhotoIcon } from '@heroicons/react/24/solid'
 import { useMemo, useState } from 'react'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { TokenStandard, createV1, mintV1, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { clusterApiUrl } from '@solana/web3.js';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import { AnchorProvider } from '@coral-xyz/anchor';
-import { createGenericFileFromBrowserFile, generateSigner } from '@metaplex-foundation/umi';
+import { createGenericFileFromBrowserFile, generateSigner, percentAmount } from '@metaplex-foundation/umi';
 import { awsUploader } from '@metaplex-foundation/umi-uploader-aws';
 import { S3Client } from '@aws-sdk/client-s3';
 import toast from 'react-hot-toast';
 import WalletConnect from '../solana-wallet/WalletConnect';
+import { base58 } from '@metaplex-foundation/umi/serializers';
 
 
 export default function CreateNftForm() {
@@ -39,14 +40,16 @@ export default function CreateNftForm() {
 
   // States
   const [nftName, setNftName] = useState("");
+  const [nftSymbol, setNftSymbol] = useState("");
   const [nftFile, setNftFile] = useState<File>();
   const [nftDescription, setNftDescription] = useState("");
 
   const cancelOnClick = () => {
     // Reset all states
     setNftName("");
-    setNftFile(undefined);
+    setNftSymbol("");
     setNftDescription("");
+    setNftFile(undefined);
   }
 
   const createNftOnClick = async () => {
@@ -58,6 +61,7 @@ export default function CreateNftForm() {
       return true;
     }
     if (!validateInput(nftName, "Please enter a name for your NFT")) return;
+    if (!validateInput(nftSymbol, "Please enter a symbol for your NFT")) return;
     if (!validateInput(nftFile, "Please upload a file first")) return;
     if (!validateInput(nftDescription, "Please enter a description for your NFT")) return;
 
@@ -65,14 +69,73 @@ export default function CreateNftForm() {
     const file = await createGenericFileFromBrowserFile(nftFile!);
     let [fileUri] = await umi.uploader.upload([file]);
 
+    console.log("file uri", fileUri)
+
     // Upload the Json metadata 
-    const uri = await umi.uploader.uploadJson({
+    const jsonUri = await umi.uploader.uploadJson({
       name: nftName,
-      descripotion: nftDescription,
+      symbol: nftSymbol,
+      description: nftDescription,
       image: fileUri,
     })
 
-    toast.success(`Uploaded image to s3 at: ${uri}`);
+    console.log("json uri", jsonUri)
+
+    // Now we create the NFT
+    // Our Nft Mint
+    const mint = generateSigner(umi)
+
+    console.log("mint", mint.publicKey)
+
+    // First create the metadata account
+    try {
+      toast.loading("Creating NFT...")
+      let createTx = await createV1(umi, {
+        mint: mint,
+        authority: umi.identity,
+        updateAuthority: umi.identity,
+        payer: umi.payer,
+        name: nftName,
+        symbol: nftSymbol,
+        uri: jsonUri,
+        sellerFeeBasisPoints: percentAmount(0),
+        tokenStandard: TokenStandard.NonFungible,
+        primarySaleHappened: false,
+      }).sendAndConfirm(umi, {
+        send: {
+          preflightCommitment: "confirmed",
+        },
+      })
+
+      toast.dismiss();
+      toast.success(`NFT created tx: ${base58.deserialize(createTx.signature)[0]}`);
+    } catch (err) {
+      toast.dismiss()
+      toast.error(`Failed to create NFT: ${err}`)
+      return
+    }
+
+    try {
+      toast.loading("Minting NFT...")
+      let mintTx = await mintV1(umi, {
+        mint: mint.publicKey,
+        authority: umi.identity,
+        amount: 1,
+        payer: umi.payer,
+        tokenOwner: umi.identity.publicKey,
+        tokenStandard: TokenStandard.NonFungible
+      }).sendAndConfirm(umi, {
+        send: {
+          preflightCommitment: "confirmed",
+        }
+      })
+
+      toast.dismiss()
+      toast.success(`NFT minted tx: ${base58.deserialize(mintTx.signature)[0]}`)
+    } catch (err) {
+      toast.dismiss()
+      toast.error(`Failed to mint NFT: ${err}`)
+    }
   }
 
   return (
@@ -95,10 +158,29 @@ export default function CreateNftForm() {
                     type="text"
                     name="username"
                     id="username"
-                    autoComplete="username"
                     className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-white focus:ring-0 sm:text-sm sm:leading-6"
                     placeholder="NFT Name"
+                    value={nftName}
                     onChange={(e) => setNftName(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:col-span-4">
+              <label htmlFor="username" className="block text-sm font-medium leading-6 text-white">
+                Nft Symbol
+              </label>
+              <div className="mt-2">
+                <div className="flex rounded-md bg-white/5 ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
+                  <input
+                    type="text"
+                    name="nftSymbol"
+                    id="nftSymbol"
+                    className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-white focus:ring-0 sm:text-sm sm:leading-6"
+                    placeholder="NFT Symbol"
+                    value={nftSymbol}
+                    onChange={(e) => setNftSymbol(e.target.value)}
                   />
                 </div>
               </div>
@@ -114,7 +196,7 @@ export default function CreateNftForm() {
                   name="about"
                   rows={3}
                   className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                  defaultValue={''}
+                  value={nftDescription}
                   onChange={(e) => setNftDescription(e.target.value)}
                 />
               </div>

@@ -6,7 +6,11 @@ export default function Layout({ children: children }: { children: React.ReactNo
   return (
     <>
       <div><Toaster
-        position="top-right"
+        position="bottom-left"
+        toastOptions={{
+          style: { wordBreak: "break-all" },
+          duration: 20000,
+        }}
       /></div>
       <NavBar />
       <div>
