@@ -21,13 +21,13 @@ export default function CreateNftForm() {
 
   // Instantiate S3 client
   const s3 = new S3Client({
-    region: process.env.AWS_REGION!,
+    region: process.env.NEXT_PUBLIC_AWS_REGION,
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY!,
     }
   });
-  const bucketName = process.env.AWS_BUCKET_NAME!;
+  const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!;
 
   const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
   const umi = useMemo(() =>
@@ -41,6 +41,13 @@ export default function CreateNftForm() {
   const [nftName, setNftName] = useState("");
   const [nftFile, setNftFile] = useState<File>();
   const [nftDescription, setNftDescription] = useState("");
+
+  const cancelOnClick = () => {
+    // Reset all states
+    setNftName("");
+    setNftFile(undefined);
+    setNftDescription("");
+  }
 
   const createNftOnClick = async () => {
     const validateInput = (input: any, message: string) => {
@@ -65,7 +72,7 @@ export default function CreateNftForm() {
       image: fileUri,
     })
 
-    const mint = generateSigner(umi)
+    toast.success(`Uploaded image to s3 at: ${uri}`);
   }
 
   return (
@@ -120,16 +127,23 @@ export default function CreateNftForm() {
               </label>
               <div className="mt-2 flex justify-center rounded-lg border border-dashed border-white/25 px-6 py-10">
                 <div className="text-center">
-                  <PhotoIcon className="mx-auto h-12 w-12 text-gray-500" aria-hidden="true" />
+                  {
+                    nftFile ?
+                      <img src={URL.createObjectURL(nftFile)} alt="NFT" className="mx-auto text-gray-500" />
+                      :
+                      <PhotoIcon className="mx-auto h-12 w-12 text-gray-500" aria-hidden="true" />
+                  }
                   <div className="mt-4 flex text-sm leading-6 text-gray-400">
-                    <label
-                      htmlFor="file-upload"
-                      className="relative cursor-pointer rounded-md bg-gray-900 font-semibold text-white focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-indigo-500"
-                    >
-                      <span>Upload a file</span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={(e) => setNftFile(e.target.files?.[0])} />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
+                    <div className="mx-auto">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer rounded-md bg-gray-900 font-semibold text-white focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-indigo-500"
+                      >
+                        <span>Upload a file</span>
+                        <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={(e) => setNftFile(e.target.files?.[0])} />
+                      </label>
+                      <p className="pl-1">no drag and drop cuz I am busy</p>
+                    </div>
                   </div>
                   <p className="text-xs leading-5 text-gray-400">PNG, JPG, GIF up to 10MB</p>
                 </div>
@@ -140,6 +154,9 @@ export default function CreateNftForm() {
       </div>
 
       <div className="mt-6 flex items-center justify-end gap-x-6">
+        <button onClick={cancelOnClick} type="button" className="text-sm font-semibold leading-6 text-white">
+          Cancel
+        </button>
         {wallet?.publicKey ? (
           <button
             onClick={createNftOnClick}
