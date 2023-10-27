@@ -1,16 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
 import WalletConnect from '../solana-wallet/WalletConnect';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { WalletDisconnectButton, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-
-const WalletMultiButtonDynamic = dynamic(
-  async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
-  { ssr: false }
-);
 
 
 export default function NavBar() {
@@ -20,8 +12,6 @@ export default function NavBar() {
   ]
 
   const router = useRouter();
-
-  console.log(router)
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
@@ -58,14 +48,7 @@ export default function NavBar() {
               </ul>
             </nav>
 
-            <WalletConnect
-              className="bg-primary text-white"
-              style={{
-                width: '188.16px',
-              }}
-            >
-              <WalletMultiButtonDynamic />
-            </WalletConnect>
+            <WalletConnect className="bg-primary text-white"/>
           </div>
         </div>
       </div>
