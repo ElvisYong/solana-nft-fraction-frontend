@@ -1,3 +1,4 @@
+import Layout from '@/components/layout'
 import '@/styles/globals.css'
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
@@ -37,7 +38,9 @@ export default function App({ Component, pageProps }: AppProps) {
     <div className="bg-[url('/Background.svg')] bg-cover min-h-screen text-white">
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
-          <Component {...pageProps} />
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
         </WalletProvider>
       </ConnectionProvider>
     </div >

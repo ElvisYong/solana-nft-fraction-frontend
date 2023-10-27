@@ -4,25 +4,29 @@ import WalletConnect from '../solana-wallet/WalletConnect';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletDisconnectButton, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 const WalletMultiButtonDynamic = dynamic(
   async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
   { ssr: false }
 );
 
-const tabs: any[] = [
-  { name: 'Create Nft', href: '#', current: true },
-  { name: 'Fractionalize Nft', href: '#', current: false },
-]
 
-export default function Example() {
+export default function NavBar() {
+  const tabs: any[] = [
+    { name: 'Create Nft', href: '/', current: true },
+    { name: 'Fractionalize Nft', href: '/fractionalize', current: false },
+  ]
+
+  const router = useRouter();
+
+  console.log(router)
+
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="sm:hidden">
-          <label htmlFor="tabs" className="sr-only">
-            Select a tab
-          </label>
           {/* Use an "onChange" listener to redirect the user to the selected tab URL. */}
           <select
             id="tabs"
@@ -46,9 +50,9 @@ export default function Example() {
                 <span className="ml-1 font-semibold text-xl">TRUSTMEBRO</span>
                 {tabs.map((tab) => (
                   <li key={tab.name}>
-                    <a href={tab.href} className={tab.current ? 'text-indigo-400' : ''}>
+                    <Link href={tab.href} className={router.asPath === tab.href ? 'text-indigo-400' : ''}>
                       {tab.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
