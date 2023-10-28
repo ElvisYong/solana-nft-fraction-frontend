@@ -5,13 +5,13 @@ import NavBar from "./nav/Nav";
 export default function Layout({ children: children }: { children: React.ReactNode }) {
   return (
     <>
-      <div><Toaster
+      <Toaster
         position="bottom-left"
         toastOptions={{
           style: { wordBreak: "break-all" },
           duration: 20000,
         }}
-      /></div>
+      />
       <NavBar />
       <div>
         {children}

@@ -69,15 +69,13 @@ export default function CreateNftForm() {
     const file = await createGenericFileFromBrowserFile(nftFile!);
     let [fileUri] = await umi.uploader.upload([file]);
 
-    console.log("file uri", fileUri)
-
     // Upload the Json metadata 
     const jsonUri = await umi.uploader.uploadJson({
       name: nftName,
       symbol: nftSymbol,
       description: nftDescription,
       image: fileUri,
-    })
+    } as NftJsonType)
 
     console.log("json uri", jsonUri)
 
