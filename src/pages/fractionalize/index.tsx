@@ -108,7 +108,11 @@ const FractionalizePage = () => {
           </Tab.Panel>
 
           <Tab.Panel key="FT">
-
+            <h1 className="text-base font-semibold leading-7 text-white">Your Fungible Tokens</h1>
+            <p className="mt-1 text-sm leading-6 text-gray-400">
+              View all your Fungible Tokens here
+            </p>
+            <GalleryView tokens={fungibleTokens} />
           </Tab.Panel>
         </Tab.Group>
       </div>
