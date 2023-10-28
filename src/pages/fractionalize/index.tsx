@@ -1,6 +1,7 @@
 import GalleryView from '@/components/gallery-view/GalleryView';
 import { DigitalAssetWithTokenAndJson, NftJsonType } from '@/types/NftJsonType';
 import { AnchorProvider } from '@coral-xyz/anchor';
+import { Tab } from '@headlessui/react';
 import { mplTokenMetadata, fetchAllDigitalAssetWithTokenByOwner, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
 import { parseJsonFromGenericFile, unwrapOption } from '@metaplex-foundation/umi';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -9,6 +10,10 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { clusterApiUrl } from '@solana/web3.js';
 import React, { useEffect, useMemo, useState } from 'react'
+
+function classNames(...classes: any) {
+  return classes.filter(Boolean).join(' ')
+}
 
 const FractionalizePage = () => {
   const rpcEndpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
@@ -68,11 +73,44 @@ const FractionalizePage = () => {
   return (
     <>
       <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <h1 className="text-base font-semibold leading-7 text-white">Your NFTs</h1>
-        <p className="mt-1 text-sm leading-6 text-gray-400">
-          View all your NFTs here
-        </p>
-        <GalleryView tokens={nfts} />
+        <Tab.Group>
+          <Tab.List className="flex mb-5 space-x-1 border-b border-white/10 p-1">
+            <Tab key="NFT"
+              className={({ selected }) =>
+                classNames(
+                  'w-full py-2.5 text-sm font-medium leading-5 text-gray-400 border-e border-white/10',
+                  selected
+                    ? 'text-indigo-400'
+                    : 'text-gray-400'
+                )
+              }>
+              Non-Fungible Tokens
+            </Tab>
+            <Tab key="FT"
+              className={({ selected }) =>
+                classNames(
+                  'w-full py-2.5 text-sm font-medium leading-5 text-gray-400',
+                  selected
+                    ? 'text-indigo-400'
+                    : 'text-gray-400'
+                )
+              }>
+              Fungible Tokens
+            </Tab>
+          </Tab.List>
+
+          <Tab.Panel key="NFT">
+            <h1 className="text-base font-semibold leading-7 text-white">Your NFTs</h1>
+            <p className="mt-1 text-sm leading-6 text-gray-400">
+              View all your NFTs here
+            </p>
+            <GalleryView tokens={nfts} />
+          </Tab.Panel>
+
+          <Tab.Panel key="FT">
+
+          </Tab.Panel>
+        </Tab.Group>
       </div>
     </>
   )
