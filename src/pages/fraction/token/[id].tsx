@@ -56,6 +56,7 @@ function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
 }
 
+// TODO: Support check if NFT or FT
 export default function NftInfo() {
   const [selectedColor, setSelectedColor] = useState(product.colors[0])
   const rpcEndpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
