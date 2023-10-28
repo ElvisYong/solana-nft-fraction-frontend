@@ -13,30 +13,29 @@ import { S3Client } from '@aws-sdk/client-s3';
 import toast from 'react-hot-toast';
 import WalletConnect from '../solana-wallet/WalletConnect';
 import { base58 } from '@metaplex-foundation/umi/serializers';
+import { NftJsonType } from '@/types/NftJsonType';
 
 
 export default function CreateNftForm() {
   const rpcEndpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
-
+  const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
+  const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!;
   // Instantiate S3 client
-  const s3 = new S3Client({
+  const s3 = useMemo(() => new S3Client({
     region: process.env.NEXT_PUBLIC_AWS_REGION,
     credentials: {
       accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID!,
       secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY!,
     }
-  });
-  const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!;
-
-  const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
+  }), []);
   const umi = useMemo(() =>
     createUmi(rpcEndpoint)
       .use(awsUploader(s3, bucketName))
       .use(walletAdapterIdentity(wallet!, true))
       .use(mplTokenMetadata()),
-    [rpcEndpoint, wallet,]);
+    [rpcEndpoint, wallet, bucketName, s3]);
 
   // States
   const [nftName, setNftName] = useState("");
