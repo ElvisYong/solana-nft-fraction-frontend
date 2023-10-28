@@ -4,7 +4,7 @@ import { StarIcon } from '@heroicons/react/20/solid'
 import { HeartIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { clusterApiUrl } from '@solana/web3.js'
 import { DigitalAssetWithTokenAndJson, NftJsonType } from '@/types/NftJsonType'
-import { AnchorProvider } from '@coral-xyz/anchor'
+import { AnchorProvider, Idl, Program } from '@coral-xyz/anchor'
 import { fetchDigitalAssetWithTokenByMint, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
@@ -13,64 +13,25 @@ import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react'
 import { useRouter } from 'next/router'
 import { publicKey } from '@metaplex-foundation/umi'
 import toast from 'react-hot-toast'
+import idl from '../../../idl/solana_nft_fraction.json';
 
-const product = {
-  name: 'Zip Tote Basket',
-  price: '$140',
-  rating: 4,
-  images: [
-    {
-      id: 1,
-      name: 'Angled view',
-      src: 'https://tailwindui.com/img/ecommerce-images/product-page-03-product-01.jpg',
-      alt: 'Angled front view with bag zipped and handles upright.',
-    },
-    // More images...
-  ],
-  colors: [
-    { name: 'Washed Black', bgColor: 'bg-gray-700', selectedColor: 'ring-gray-700' },
-    { name: 'White', bgColor: 'bg-white', selectedColor: 'ring-gray-400' },
-    { name: 'Washed Gray', bgColor: 'bg-gray-500', selectedColor: 'ring-gray-500' },
-  ],
-  description: `
-    <p>The Zip Tote Basket is the perfect midpoint between shopping tote and comfy backpack. With convertible straps, you can hand carry, should sling, or backpack this convenient and spacious bag. The zip top and durable canvas construction keeps your goods protected for all-day use.</p>
-  `,
-  details: [
-    {
-      name: 'Features',
-      items: [
-        'Multiple strap configurations',
-        'Spacious interior with top zip',
-        'Leather handle and tabs',
-        'Interior dividers',
-        'Stainless strap loops',
-        'Double stitched construction',
-        'Water-resistant',
-      ],
-    },
-    // More sections...
-  ],
-}
-
-function classNames(...classes: any) {
-  return classes.filter(Boolean).join(' ')
-}
+const FRACTION_PROGRAM_ID = "5FYYwBNgxgGdUWWrY1Mxo53nwLFzH3q8pwHQD3BNre8x";
 
 // TODO: Support check if NFT or FT
 export default function NftInfo() {
-  const [selectedColor, setSelectedColor] = useState(product.colors[0])
+  const router = useRouter();
+  const { id } = router.query;
+
   const rpcEndpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
-  const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
   const umi = useMemo(() =>
     createUmi(rpcEndpoint)
       .use(walletAdapterIdentity(wallet!, true))
       .use(mplTokenMetadata()),
     [rpcEndpoint, wallet]);
-
-  const router = useRouter();
-  const { id } = router.query;
+  const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
+  const program = new Program(idl as Idl, FRACTION_PROGRAM_ID, provider);
 
   const [asset, setAsset] = useState<DigitalAssetWithTokenAndJson>();
 
