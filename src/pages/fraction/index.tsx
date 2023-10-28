@@ -10,6 +10,7 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { clusterApiUrl } from '@solana/web3.js';
 import React, { useEffect, useMemo, useState } from 'react'
+import toast from 'react-hot-toast';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
@@ -32,44 +33,48 @@ const FractionalizePage = () => {
   // Get all digital assets with token
   useEffect(() => {
     const fetchAllNfts = async () => {
-      const assets = await fetchAllDigitalAssetWithTokenByOwner(umi, umi.identity.publicKey)
-      const genericFiles = await umi.downloader.download(assets.map((asset) => {
-        return asset.metadata.uri;
-      }));
-      // Parse JSON file into an object
-      let nftJsonFiles = genericFiles.map((file) => parseJsonFromGenericFile(file)) as NftJsonType[];
+      try {
+        const assets = await fetchAllDigitalAssetWithTokenByOwner(umi, umi.identity.publicKey)
+        const genericFiles = await umi.downloader.download(assets.map((asset) => {
+          return asset.metadata.uri;
+        }));
+        // Parse JSON file into an object
+        let nftJsonFiles = genericFiles.map((file) => parseJsonFromGenericFile(file)) as NftJsonType[];
 
-      // Map digitalAssetsWithToken using the nftJsonFiles, they should be in the same order, 
-      // simply extract the image from the data and append it into the DigitalAssetWithTokenObject object
-      // Extract this into a new array as type DigitalAssetWWithTokenAndJson[]
-      const assetsWithImage = assets.map((asset, i) => {
-        return {
-          ...asset,
-          ...nftJsonFiles[i],
-        }
-      }) as DigitalAssetWithTokenAndJson[];
+        // Map digitalAssetsWithToken using the nftJsonFiles, they should be in the same order, 
+        // simply extract the image from the data and append it into the DigitalAssetWithTokenObject object
+        // Extract this into a new array as type DigitalAssetWWithTokenAndJson[]
+        const assetsWithImage = assets.map((asset, i) => {
+          return {
+            ...asset,
+            ...nftJsonFiles[i],
+          }
+        }) as DigitalAssetWithTokenAndJson[];
 
-      // Split the assets into NFTs and FTs
-      let nfts = []
-      let fungibleTokens = []
-      for (let i = 0; i < assetsWithImage.length; i++) {
-        if (unwrapOption(assetsWithImage[i].metadata.tokenStandard) === TokenStandard.NonFungible) {
-          nfts.push(assetsWithImage[i])
-        } else {
-          fungibleTokens.push(assetsWithImage[i])
+        // Split the assets into NFTs and FTs
+        let nfts = []
+        let fungibleTokens = []
+        for (let i = 0; i < assetsWithImage.length; i++) {
+          if (unwrapOption(assetsWithImage[i].metadata.tokenStandard) === TokenStandard.NonFungible) {
+            nfts.push(assetsWithImage[i])
+          } else {
+            fungibleTokens.push(assetsWithImage[i])
+          }
         }
+
+        setNfts(nfts);
+        setFungibleTokens(fungibleTokens);
+      } catch (e: any) {
+        toast.error(`Error: ${e.message}`);
       }
-
-      setNfts(nfts);
-      setFungibleTokens(fungibleTokens);
     }
 
     if (!wallet) {
       return;
     }
-
     fetchAllNfts();
   }, [umi])
+
   return (
     <>
       <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">

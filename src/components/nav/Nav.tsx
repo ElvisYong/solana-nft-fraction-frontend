@@ -8,7 +8,7 @@ import Link from 'next/link';
 export default function NavBar() {
   const tabs: any[] = [
     { name: 'Create Nft', href: '/', current: true },
-    { name: 'Fractionalize Nft', href: '/fractionalize', current: false },
+    { name: 'Fractionalize Nft', href: '/fraction', current: false },
   ]
 
   const router = useRouter();
