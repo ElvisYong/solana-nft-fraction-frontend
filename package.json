@@ -18,6 +18,7 @@
     "@metaplex-foundation/umi-bundle-defaults": "^0.8.9",
     "@metaplex-foundation/umi-signer-wallet-adapters": "^0.8.9",
     "@metaplex-foundation/umi-uploader-aws": "^0.8.9",
+    "@solana/spl-token": "^0.3.8",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.34",

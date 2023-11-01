@@ -1,8 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
 import { useEffect, useMemo, useState } from 'react'
-import { SystemProgram, YSVAR_INSTRUCTIONS_PUBKEY, SclusterApiUrl, SYSVAR_INSTRUCTIONS_PUBKEY } from '@solana/web3.js'
+import { SystemProgram, SYSVAR_INSTRUCTIONS_PUBKEY, ComputeBudgetProgram, clusterApiUrl } from '@solana/web3.js'
 import { DigitalAssetWithTokenAndJson, NftJsonType } from '@/types/NftJsonType'
-import { AnchorProvider, Idl, Program } from '@coral-xyz/anchor'
+import { AnchorProvider, Program } from '@coral-xyz/anchor'
 import { MPL_TOKEN_METADATA_PROGRAM_ID, fetchDigitalAssetWithTokenByMint, findMetadataPda, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
@@ -13,7 +13,8 @@ import { publicKey, publicKeyBytes } from '@metaplex-foundation/umi'
 import toast from 'react-hot-toast'
 import idl from '../../../idl/solana_nft_fraction.json';
 import { ASSOCIATED_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
-, TOKEN_PROGRAM_ID
+import { SolanaNftFraction } from "@/idl/solana_nft_fraction";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 const FRACTION_PROGRAM_ID = "5FYYwBNgxgGdUWWrY1Mxo53nwLFzH3q8pwHQD3BNre8x";
 
 // TODO: Support check if NFT or FT
@@ -30,12 +31,12 @@ export default function NftInfo() {
       .use(mplTokenMetadata()),
     [rpcEndpoint, wallet]);
   const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
-  const program = new Program(idl as Idl, FRACTION_PROGRAM_ID, provider);
+  const program = new Program(idl as SolanaNftFraction, FRACTION_PROGRAM_ID, provider) as Program<SolanaNftFraction>;
 
   const [asset, setAsset] = useState<DigitalAssetWithTokenAndJson>();
+  const [fractionAmount, setFractionAmount] = useState<number>(0);
 
   useEffect(() => {
-    console.log(id)
     const fetchNftInfo = async () => {
       try {
         const digitalAsset = await fetchDigitalAssetWithTokenByMint(umi, publicKey(id as string))
@@ -56,50 +57,73 @@ export default function NftInfo() {
   }, [])
 
   const onFractionalizeClick = async () => {
-    if (!asset) {
+    if (!asset || fractionAmount <= 0) {
       return;
     }
 
-    const [fractionPDA, fractionBump] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(anchor.utils.bytes.utf8.encode("fraction")), publicKeyBytes(asset.mint.publicKey)],
-      program.programId
-    );
+    try {
+      toast.loading("Fractionalizing NFT")
+      const [fractionPDA, fractionBump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(anchor.utils.bytes.utf8.encode("fraction")), publicKeyBytes(asset.mint.publicKey)],
+        program.programId
+      );
 
-    const [nftVault, nftVaultBump] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(anchor.utils.bytes.utf8.encode("nft_vault")), publicKeyBytes(asset.mint.publicKey)],
-      program.programId
-    );
+      const [nftVault, nftVaultBump] = await anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(anchor.utils.bytes.utf8.encode("nft_vault")), publicKeyBytes(asset.mint.publicKey)],
+        program.programId
+      );
 
-    const tokenMint = anchor.web3.Keypair.generate();
+      const tokenMint = anchor.web3.Keypair.generate();
 
-    const [fractionMetadataAccount, fractionMetadataAccountBump] = findMetadataPda(umi, {
-      mint: publicKey(tokenMint.publicKey)
-    });
+      const [fractionMetadataAccount, fractionMetadataAccountBump] = findMetadataPda(umi, {
+        mint: publicKey(tokenMint.publicKey)
+      });
 
-    const ixArgs = {
-      shareAmount: new anchor.BN(10),
-      fractionAccount: fractionPDA,
+      const ixArgs = {
+        shareAmount: new anchor.BN(fractionAmount),
+        fractionAccount: fractionPDA,
+      }
+
+      let userTokenAccount = await getAssociatedTokenAddress(tokenMint.publicKey, provider.wallet.publicKey);
+
+      const ixAccounts = {
+        user: provider.wallet.publicKey,
+        fractionAccount: fractionPDA,
+        nftVault: nftVault,
+        nftAccount: asset.token.publicKey,
+        nftMint: asset.mint.publicKey,
+        nftMetadataAccount: asset.metadata.publicKey,
+        fractionTokenMetadata: fractionMetadataAccount,
+        userTokenAccount: userTokenAccount,
+        tokenMint: tokenMint.publicKey,
+        tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        ataProgram: ASSOCIATED_PROGRAM_ID,
+        sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        systemProgram: SystemProgram.programId,
+      }
+
+      let wallet = provider.wallet as anchor.Wallet;
+
+      console.log("ixAccounts", ixAccounts)
+
+      // We need to modify the compute units to be able to run the transaction
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 1000000
+      });
+
+      let txid = await program.methods.fractionalizeNft(ixArgs.shareAmount)
+        .accounts(ixAccounts)
+        .signers([wallet.payer, tokenMint])
+        .preInstructions([modifyComputeUnits])
+        .rpc();
+
+      toast.success("NFT Fractionalized: " + txid)
+    } catch (e: any) {
+      console.log(e)
+      toast.error("Error: " + e)
     }
 
-    let userTokenAccount = await getAssociatedTokenAddress(tokenMint.publicKey, provider.wallet.publicKey);
-
-    const ixAccounts = {
-      user: provider.wallet.publicKey,
-      fractionAccount: fractionPDA,
-      nftVault: nftVault,
-      nftAccount: asset.token.publicKey,
-      nftMint: asset.mint.publicKey,
-      nftMetadataAccount: asset.metadata.publicKey,
-      fractionTokenMetadata: fractionMetadataAccount,
-      userTokenAccount: userTokenAccount,
-      tokenMint: tokenMint.publicKey, 
-      tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      ataProgram: ASSOCIATED_PROGRAM_ID,
-      sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-      systemProgram: SystemProgram.programId,
-    }
-    let wallet = provider.wallet as anchor.Wallet;
   }
 
   return (
@@ -127,17 +151,33 @@ export default function NftInfo() {
                 <p>{asset.description}</p>
               </div>
 
-              <form className="mt-6">
-                {/* Colors */}
-
-                <div className="mt-10 flex">
-                  <button
-                    className="flex max-w-xs flex-1 items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 sm:w-full"
-                  >
-                    Fractionalize NFT
-                  </button>
+              <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                <div className="sm:col-span-4">
+                  <label htmlFor="username" className="block text-sm font-medium leading-6 text-white">
+                    Amounts to Fractionalize
+                  </label>
+                  <div className="mt-2">
+                    <div className="flex pl-3 rounded-md bg-white/5 ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
+                      <input
+                        type="number"
+                        className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-white focus:ring-0 sm:text-sm sm:leading-6"
+                        placeholder="10"
+                        value={fractionAmount}
+                        onChange={(e) => setFractionAmount(parseInt(e.target.value))}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </form>
+              </div>
+
+              <div className="mt-10 flex">
+                <button
+                  onClick={onFractionalizeClick}
+                  className="flex max-w-xs flex-1 items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 sm:w-full"
+                >
+                  Fractionalize NFT
+                </button>
+              </div>
 
               <section aria-labelledby="details-heading" className="mt-12">
                 <h2 id="details-heading" className="sr-only">
@@ -161,8 +201,5 @@ export default function NftInfo() {
 
     </div>
   )
-}
-function getAssociatedTokenAddress(publicKey: anchor.web3.PublicKey, publicKey1: anchor.web3.PublicKey) {
-  throw new Error("Function not implemented.");
 }
 
