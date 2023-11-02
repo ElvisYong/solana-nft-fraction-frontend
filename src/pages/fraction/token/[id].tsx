@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { useEffect, useMemo, useState } from 'react'
-import { SystemProgram, SYSVAR_INSTRUCTIONS_PUBKEY, ComputeBudgetProgram, clusterApiUrl } from '@solana/web3.js'
+import { SystemProgram, SYSVAR_INSTRUCTIONS_PUBKEY, ComputeBudgetProgram, clusterApiUrl, Signer, VersionedTransaction } from '@solana/web3.js'
 import { DigitalAssetWithTokenAndJson, NftJsonType } from '@/types/NftJsonType'
 import { AnchorProvider, Program } from '@coral-xyz/anchor'
 import { MPL_TOKEN_METADATA_PROGRAM_ID, fetchDigitalAssetWithTokenByMint, findMetadataPda, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
@@ -34,10 +34,14 @@ export default function NftInfo() {
   const program = new Program(idl as SolanaNftFraction, FRACTION_PROGRAM_ID, provider) as Program<SolanaNftFraction>;
 
   const [asset, setAsset] = useState<DigitalAssetWithTokenAndJson>();
-  const [fractionAmount, setFractionAmount] = useState<number>(0);
+  const [fractionAmount, setFractionAmount] = useState<number | string>(0);
 
   useEffect(() => {
     const fetchNftInfo = async () => {
+      if (!id) {
+        return;
+      }
+
       try {
         const digitalAsset = await fetchDigitalAssetWithTokenByMint(umi, publicKey(id as string))
         const nftJson = await umi.downloader.downloadJson<NftJsonType>(digitalAsset.metadata.uri);
@@ -54,10 +58,16 @@ export default function NftInfo() {
     }
 
     fetchNftInfo();
-  }, [])
+  }, [id, umi])
 
   const onFractionalizeClick = async () => {
-    if (!asset || fractionAmount <= 0) {
+    if (!provider.wallet) {
+      toast.error("Please connect your wallet")
+      return;
+    }
+
+    if (!asset || fractionAmount as number <= 0) {
+      toast.error("Please input an amount to fractionalize thats greater than 0")
       return;
     }
 
@@ -103,20 +113,48 @@ export default function NftInfo() {
         systemProgram: SystemProgram.programId,
       }
 
-      let wallet = provider.wallet as anchor.Wallet;
-
-      console.log("ixAccounts", ixAccounts)
-
       // We need to modify the compute units to be able to run the transaction
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
         units: 1000000
       });
 
-      let txid = await program.methods.fractionalizeNft(ixArgs.shareAmount)
+      // let txid = await program.methods.fractionalizeNft(ixArgs.shareAmount)
+      //   .accounts(ixAccounts)
+      //   .signers([wallet.payer, tokenMint])
+      //   .preInstructions([modifyComputeUnits])
+      //   .rpc();
+
+      let ix = await program.methods.fractionalizeNft(ixArgs.shareAmount)
         .accounts(ixAccounts)
-        .signers([wallet.payer, tokenMint])
         .preInstructions([modifyComputeUnits])
-        .rpc();
+        .instruction();
+
+      // Step 1 - Fetch the latest blockhash
+      let latestBlockhash = await provider.connection.getLatestBlockhash("confirmed");
+      console.log(
+        "   ✅ - Fetched latest blockhash. Last Valid Height:",
+        latestBlockhash.lastValidBlockHeight
+      );
+
+      // Step 2 - Generate Transaction Message
+      const messageV0 = new anchor.web3.TransactionMessage({
+        payerKey: provider.wallet.publicKey,
+        instructions: [ix],
+        recentBlockhash: latestBlockhash.blockhash,
+      }).compileToV0Message();
+      const transaction = new anchor.web3.VersionedTransaction(messageV0);
+
+      // Step 3 - Sign Transaction
+      let signedTx = await provider.wallet.signTransaction(transaction);
+      let tokenSigner: Signer = {
+        publicKey: tokenMint.publicKey,
+        secretKey: tokenMint.secretKey
+      }
+
+      // Add the token signer to the transaction
+      signedTx.sign([tokenSigner]);
+
+      const txid = await provider.connection.sendRawTransaction(signedTx.serialize());
 
       toast.success("NFT Fractionalized: " + txid)
     } catch (e: any) {
@@ -162,7 +200,7 @@ export default function NftInfo() {
                         type="number"
                         className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-white focus:ring-0 sm:text-sm sm:leading-6"
                         placeholder="10"
-                        value={fractionAmount}
+                        value={fractionAmount || ""}
                         onChange={(e) => setFractionAmount(parseInt(e.target.value))}
                       />
                     </div>
@@ -170,6 +208,7 @@ export default function NftInfo() {
                 </div>
               </div>
 
+              {/* TODO Add checks if this is your NFT/FT */}
               <div className="mt-10 flex">
                 <button
                   onClick={onFractionalizeClick}
