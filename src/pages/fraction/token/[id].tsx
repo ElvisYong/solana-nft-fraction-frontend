@@ -15,6 +15,7 @@ import idl from '../../../idl/solana_nft_fraction.json';
 import { ASSOCIATED_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { SolanaNftFraction } from "@/idl/solana_nft_fraction";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
+
 const FRACTION_PROGRAM_ID = "5FYYwBNgxgGdUWWrY1Mxo53nwLFzH3q8pwHQD3BNre8x";
 
 // TODO: Support check if NFT or FT
@@ -114,7 +115,7 @@ export default function NftInfo() {
       }
 
       // We need to modify the compute units to be able to run the transaction
-      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      const modifyComputeUnitsIx = ComputeBudgetProgram.setComputeUnitLimit({
         units: 1000000
       });
 
@@ -126,7 +127,6 @@ export default function NftInfo() {
 
       let ix = await program.methods.fractionalizeNft(ixArgs.shareAmount)
         .accounts(ixAccounts)
-        .preInstructions([modifyComputeUnits])
         .instruction();
 
       // Step 1 - Fetch the latest blockhash
@@ -139,7 +139,7 @@ export default function NftInfo() {
       // Step 2 - Generate Transaction Message
       const messageV0 = new anchor.web3.TransactionMessage({
         payerKey: provider.wallet.publicKey,
-        instructions: [ix],
+        instructions: [modifyComputeUnitsIx, ix],
         recentBlockhash: latestBlockhash.blockhash,
       }).compileToV0Message();
       const transaction = new anchor.web3.VersionedTransaction(messageV0);
@@ -154,7 +154,7 @@ export default function NftInfo() {
       // Add the token signer to the transaction
       signedTx.sign([tokenSigner]);
 
-      const txid = await provider.connection.sendRawTransaction(signedTx.serialize());
+      const txid = await provider.connection.sendTransaction(signedTx);
 
       toast.success("NFT Fractionalized: " + txid)
     } catch (e: any) {
