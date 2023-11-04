@@ -9,14 +9,13 @@ import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-ad
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react'
 import { useRouter } from 'next/router'
-import { publicKey, publicKeyBytes } from '@metaplex-foundation/umi'
+import { publicKey } from '@metaplex-foundation/umi'
 import toast from 'react-hot-toast'
-import idl from '../../../idl/solana_nft_fraction.json';
 import { ASSOCIATED_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
-import { SolanaNftFraction } from "@/idl/solana_nft_fraction";
+import { SolanaNftFraction, IDL } from "@/idl/solana_nft_fraction";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 
-const FRACTION_PROGRAM_ID = "5FYYwBNgxgGdUWWrY1Mxo53nwLFzH3q8pwHQD3BNre8x";
+const FRACTION_PROGRAM_ID = "CgzL8rB2MyJDVNJxWeLr7D7vNMudLRFGVFK8a2QHqCJT";
 
 // TODO: Support check if NFT or FT
 export default function NftInfo() {
@@ -32,7 +31,8 @@ export default function NftInfo() {
       .use(mplTokenMetadata()),
     [rpcEndpoint, wallet]);
   const provider = useMemo(() => new AnchorProvider(connection, wallet!, {}), [connection, wallet])
-  const program = new Program(idl as SolanaNftFraction, FRACTION_PROGRAM_ID, provider) as Program<SolanaNftFraction>;
+
+  const program = new Program(IDL, FRACTION_PROGRAM_ID, provider) as Program<SolanaNftFraction>;
 
   const [asset, setAsset] = useState<DigitalAssetWithTokenAndJson>();
   const [fractionAmount, setFractionAmount] = useState<number | string>(0);
@@ -121,12 +121,6 @@ export default function NftInfo() {
         units: 1000000
       });
 
-      // let txid = await program.methods.fractionalizeNft(ixArgs.shareAmount)
-      //   .accounts(ixAccounts)
-      //   .signers([wallet.payer, tokenMint])
-      //   .preInstructions([modifyComputeUnits])
-      //   .rpc();
-
       let ix = await program.methods.fractionalizeNft(ixArgs.shareAmount)
         .accounts(ixAccounts)
         .instruction();
@@ -158,6 +152,7 @@ export default function NftInfo() {
 
       const txid = await provider.connection.sendTransaction(signedTx);
 
+      toast.dismiss();
       toast.success("NFT Fractionalized: " + txid)
     } catch (e: any) {
       console.log(e)

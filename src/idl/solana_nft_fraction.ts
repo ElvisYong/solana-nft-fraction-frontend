@@ -18,7 +18,8 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "PDA that holds the fraction account details"
+            "PDA that holds the fraction account details",
+            "We will use the nft_vault as the seed for the pda"
           ]
         },
         {
@@ -26,7 +27,8 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The pda vault thats going to hold the NFT"
+            "The pda vault thats going to hold the NFT",
+            "Use the created token_mint as seed for the vault"
           ]
         },
         {
@@ -124,6 +126,125 @@ export type SolanaNftFraction = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "unfractionalizeNft",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The user who is fractionalizing the NFT"
+          ]
+        },
+        {
+          "name": "fractionAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "PDA that holds the fraction account details",
+            "We will use the nft_vault as the seed for the pda"
+          ]
+        },
+        {
+          "name": "nftVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The pda vault thats holding the NFT"
+          ]
+        },
+        {
+          "name": "userNftAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The user account to hold the nft"
+          ]
+        },
+        {
+          "name": "nftMint",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The NFT Mint Account"
+          ]
+        },
+        {
+          "name": "nftMetadataAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "fractionTokenMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Metadata account of the Fractionalized NFT Token.",
+            "This account must be uninitialized.",
+            ""
+          ]
+        },
+        {
+          "name": "userFractionToken",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Destination token account"
+          ]
+        },
+        {
+          "name": "fractionTokenMint",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The account will be initialized if necessary.",
+            "",
+            "Must be a signer if:",
+            "* the token mint account does not exist.",
+            ""
+          ]
+        },
+        {
+          "name": "tokenMetadataProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token Metadata Program"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "spl token program"
+          ]
+        },
+        {
+          "name": "ataProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "spl ata program"
+          ]
+        },
+        {
+          "name": "sysvarInstructions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Solana native system program"
+          ]
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -169,6 +290,18 @@ export type SolanaNftFraction = {
           }
         ]
       }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "WrongOwner",
+      "msg": "SPL token owner does not belong to the user"
+    },
+    {
+      "code": 6001,
+      "name": "NotEnoughShares",
+      "msg": "Not enough shares to unfractionalize"
     }
   ]
 };
@@ -193,7 +326,8 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "PDA that holds the fraction account details"
+            "PDA that holds the fraction account details",
+            "We will use the nft_vault as the seed for the pda"
           ]
         },
         {
@@ -201,7 +335,8 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The pda vault thats going to hold the NFT"
+            "The pda vault thats going to hold the NFT",
+            "Use the created token_mint as seed for the vault"
           ]
         },
         {
@@ -299,6 +434,125 @@ export const IDL: SolanaNftFraction = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "unfractionalizeNft",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The user who is fractionalizing the NFT"
+          ]
+        },
+        {
+          "name": "fractionAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "PDA that holds the fraction account details",
+            "We will use the nft_vault as the seed for the pda"
+          ]
+        },
+        {
+          "name": "nftVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The pda vault thats holding the NFT"
+          ]
+        },
+        {
+          "name": "userNftAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The user account to hold the nft"
+          ]
+        },
+        {
+          "name": "nftMint",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The NFT Mint Account"
+          ]
+        },
+        {
+          "name": "nftMetadataAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "fractionTokenMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Metadata account of the Fractionalized NFT Token.",
+            "This account must be uninitialized.",
+            ""
+          ]
+        },
+        {
+          "name": "userFractionToken",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Destination token account"
+          ]
+        },
+        {
+          "name": "fractionTokenMint",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The account will be initialized if necessary.",
+            "",
+            "Must be a signer if:",
+            "* the token mint account does not exist.",
+            ""
+          ]
+        },
+        {
+          "name": "tokenMetadataProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token Metadata Program"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "spl token program"
+          ]
+        },
+        {
+          "name": "ataProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "spl ata program"
+          ]
+        },
+        {
+          "name": "sysvarInstructions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Solana native system program"
+          ]
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -344,6 +598,18 @@ export const IDL: SolanaNftFraction = {
           }
         ]
       }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "WrongOwner",
+      "msg": "SPL token owner does not belong to the user"
+    },
+    {
+      "code": 6001,
+      "name": "NotEnoughShares",
+      "msg": "Not enough shares to unfractionalize"
     }
   ]
 };
