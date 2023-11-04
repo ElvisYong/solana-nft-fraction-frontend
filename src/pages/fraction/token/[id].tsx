@@ -74,17 +74,19 @@ export default function NftInfo() {
 
     try {
       toast.loading("Fractionalizing NFT")
-      const [fractionPDA, fractionBump] = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(anchor.utils.bytes.utf8.encode("fraction")), publicKeyBytes(asset.mint.publicKey)],
-        program.programId
-      );
-
-      const [nftVault, nftVaultBump] = await anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(anchor.utils.bytes.utf8.encode("nft_vault")), publicKeyBytes(asset.mint.publicKey)],
-        program.programId
-      );
 
       const tokenMint = anchor.web3.Keypair.generate();
+
+      const [nftVault, nftVaultBump] = await anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(anchor.utils.bytes.utf8.encode("nft_vault")), tokenMint.publicKey.toBuffer()],
+        program.programId
+      );
+
+      const [fractionPDA, fractionBump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(anchor.utils.bytes.utf8.encode("fraction")), nftVault.toBuffer()],
+        program.programId
+      );
+
 
       const [fractionMetadataAccount, fractionMetadataAccountBump] = findMetadataPda(umi, {
         mint: publicKey(tokenMint.publicKey)
