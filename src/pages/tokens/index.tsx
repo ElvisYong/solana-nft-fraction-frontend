@@ -16,7 +16,7 @@ function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
 }
 
-const FractionalizePage = () => {
+const TokensPage = () => {
   const rpcEndpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
@@ -125,4 +125,4 @@ const FractionalizePage = () => {
   )
 }
 
-export default FractionalizePage;
+export default TokensPage;
