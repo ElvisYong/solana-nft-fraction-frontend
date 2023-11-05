@@ -17,8 +17,8 @@ const GalleryView: React.FC<GalleryViewProps> = (props: GalleryViewProps) => {
                 <img src={token.image} alt="" className="pointer-events-none object-cover group-hover:opacity-75" />
               </Link>
             </div>
-            <p className="pointer-events-none mt-2 block truncate text-sm font-medium text-white">{token.name}</p>
-            <p className="pointer-events-none block text-sm font-medium text-gray-500">{token.symbol}</p>
+            <p className="pointer-events-none mt-2 block truncate text-sm font-medium text-white">{token.metadata.name}</p>
+            <p className="pointer-events-none block text-sm font-medium text-gray-500">{token.metadata.symbol}</p>
           </li>
         ))}
       </ul>

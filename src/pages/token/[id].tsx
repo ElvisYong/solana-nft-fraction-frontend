@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { useEffect, useMemo, useState } from 'react'
-import { SystemProgram, SYSVAR_INSTRUCTIONS_PUBKEY, ComputeBudgetProgram, clusterApiUrl, Signer, VersionedTransaction } from '@solana/web3.js'
+import { SystemProgram, SYSVAR_INSTRUCTIONS_PUBKEY, ComputeBudgetProgram, clusterApiUrl, Signer, VersionedTransaction, PublicKey } from '@solana/web3.js'
 import { DigitalAssetWithTokenAndJson, NftJsonType } from '@/types/NftJsonType'
 import { AnchorProvider, Program } from '@coral-xyz/anchor'
 import { MPL_TOKEN_METADATA_PROGRAM_ID, TokenStandard, fetchDigitalAssetWithTokenByMint, findMetadataPda, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
@@ -38,6 +38,8 @@ export default function NftInfo() {
   const [asset, setAsset] = useState<DigitalAssetWithTokenAndJson>();
 
   // Used by FT
+  const [nftVaultAccount, setNftVaultAccount] = useState<any>();
+  const [fractionAccount, setFractionAccount] = useState<any>();
   const [fractionDetails, setFractionDetails] = useState<any>();
 
   // Used by NFT 
@@ -85,9 +87,12 @@ export default function NftInfo() {
           const fractionCoder = new anchor.BorshCoder(IDL);
           let fractionDetails = fractionCoder.accounts.decode("fractionDetails", fractionAccountInfo.data)
 
+          console.log("fraction details: ", fractionDetails)
+
+          setNftVaultAccount(nftVault);
+          setFractionAccount(fractionPDA);
           setFractionDetails(fractionDetails);
         }
-
 
         setAsset(asset);
       } catch (e: any) {
@@ -198,7 +203,80 @@ export default function NftInfo() {
       console.log(e)
       toast.error("Error: " + e)
     }
+  }
 
+  const onUnFractionalizeClick = async () => {
+    if (!provider.wallet) {
+      toast.error("Please connect your wallet")
+      return;
+    }
+
+    if (!asset) {
+      toast.error("Please input an amount to fractionalize thats greater than 0")
+      return;
+    }
+
+    try {
+      toast.loading("Un-Fractionalizing & withdrawing NFT")
+
+      // Fill up the instruction arguments
+      // Create an associated token address for the user to store the spl tokens
+      let userNftAccount = await getAssociatedTokenAddress(fractionDetails.nftMint, provider.wallet.publicKey);
+
+      const ixAccounts = {
+        user: provider.wallet.publicKey,
+        fractionAccount: fractionAccount,
+        nftVault: nftVaultAccount,
+        userNftAccount: userNftAccount,
+        nftMint: fractionDetails.nftMint,
+        nftMetadataAccount: fractionDetails.nftMetadata,
+        fractionTokenMetadata: asset.metadata.publicKey,
+        userFractionToken: asset.token.publicKey,
+        fractionTokenMint: asset.token.mint,
+        tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        ataProgram: ASSOCIATED_PROGRAM_ID,
+        sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        systemProgram: SystemProgram.programId,
+      }
+
+      // We need to modify the compute units to be able to run the instructions
+      const modifyComputeUnitsIx = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 1000000
+      });
+
+      let ix = await program.methods.unfractionalizeNft()
+        .accounts(ixAccounts)
+        .instruction();
+
+      // Step 1 - Fetch the latest blockhash
+      let latestBlockhash = await provider.connection.getLatestBlockhash("confirmed");
+      console.log(
+        "   ✅ - Fetched latest blockhash. Last Valid Height:",
+        latestBlockhash.lastValidBlockHeight
+      );
+
+      // Step 2 - Generate Transaction Message
+      const messageV0 = new anchor.web3.TransactionMessage({
+        payerKey: provider.wallet.publicKey,
+        instructions: [modifyComputeUnitsIx, ix],
+        recentBlockhash: latestBlockhash.blockhash,
+      }).compileToV0Message();
+      const transaction = new anchor.web3.VersionedTransaction(messageV0);
+
+      // Step 3 - Sign Transaction
+      let signedTx = await provider.wallet.signTransaction(transaction);
+
+      const txid = await provider.connection.sendTransaction(signedTx, {
+        preflightCommitment: "confirmed"
+      });
+
+      toast.dismiss();
+      toast.success("NFT UnFractionalized and withdrawned: " + txid)
+    } catch (e: any) {
+      console.log(e)
+      toast.error("Error: " + e)
+    }
   }
 
   // Show views for non FTs
@@ -253,7 +331,7 @@ export default function NftInfo() {
 
                   <div className="mt-10 flex">
                     <button
-                      onClick={onFractionalizeClick}
+                      onClick={onUnFractionalizeClick}
                       className="flex max-w-xs flex-1 items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 sm:w-full"
                     >
                       Un-Fractionalize & Withdraw NFT

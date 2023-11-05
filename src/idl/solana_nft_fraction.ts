@@ -135,7 +135,7 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": true,
           "docs": [
-            "The user who is fractionalizing the NFT"
+            "The user who is unfractionalizing the NFT"
           ]
         },
         {
@@ -160,7 +160,7 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The user account to hold the nft"
+            "The user account to hold the unfractionalized withdrawn nft"
           ]
         },
         {
@@ -168,22 +168,23 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The NFT Mint Account"
+            "The current NFT Mint Account"
           ]
         },
         {
           "name": "nftMetadataAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "The current nft metadata account"
+          ]
         },
         {
           "name": "fractionTokenMetadata",
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "Metadata account of the Fractionalized NFT Token.",
-            "This account must be uninitialized.",
-            ""
+            "Metadata account of the Fractionalized NFT Token."
           ]
         },
         {
@@ -191,7 +192,7 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "Destination token account"
+            "The SPL Token that the user is going to burn to withdraw the NFT"
           ]
         },
         {
@@ -199,7 +200,7 @@ export type SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The account will be initialized if necessary.",
+            "The current token mint of the fraction token",
             "",
             "Must be a signer if:",
             "* the token mint account does not exist.",
@@ -264,6 +265,13 @@ export type SolanaNftFraction = {
             "name": "nftMint",
             "docs": [
               "The nft mint for the fractionalized NFT. (32)"
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "nftMetadata",
+            "docs": [
+              "The nft metadata acc for the fractionalized NFT. (32)"
             ],
             "type": "publicKey"
           },
@@ -443,7 +451,7 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": true,
           "docs": [
-            "The user who is fractionalizing the NFT"
+            "The user who is unfractionalizing the NFT"
           ]
         },
         {
@@ -468,7 +476,7 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The user account to hold the nft"
+            "The user account to hold the unfractionalized withdrawn nft"
           ]
         },
         {
@@ -476,22 +484,23 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The NFT Mint Account"
+            "The current NFT Mint Account"
           ]
         },
         {
           "name": "nftMetadataAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "The current nft metadata account"
+          ]
         },
         {
           "name": "fractionTokenMetadata",
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "Metadata account of the Fractionalized NFT Token.",
-            "This account must be uninitialized.",
-            ""
+            "Metadata account of the Fractionalized NFT Token."
           ]
         },
         {
@@ -499,7 +508,7 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "Destination token account"
+            "The SPL Token that the user is going to burn to withdraw the NFT"
           ]
         },
         {
@@ -507,7 +516,7 @@ export const IDL: SolanaNftFraction = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The account will be initialized if necessary.",
+            "The current token mint of the fraction token",
             "",
             "Must be a signer if:",
             "* the token mint account does not exist.",
@@ -572,6 +581,13 @@ export const IDL: SolanaNftFraction = {
             "name": "nftMint",
             "docs": [
               "The nft mint for the fractionalized NFT. (32)"
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "nftMetadata",
+            "docs": [
+              "The nft metadata acc for the fractionalized NFT. (32)"
             ],
             "type": "publicKey"
           },
