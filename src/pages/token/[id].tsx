@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { SystemProgram, SYSVAR_INSTRUCTIONS_PUBKEY, ComputeBudgetProgram, clusterApiUrl, Signer, VersionedTransaction, PublicKey } from '@solana/web3.js'
 import { DigitalAssetWithTokenAndJson, NftJsonType } from '@/types/NftJsonType'
 import { AnchorProvider, Program } from '@coral-xyz/anchor'
-import { MPL_TOKEN_METADATA_PROGRAM_ID, TokenStandard, fetchDigitalAssetWithTokenByMint, findMetadataPda, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { MPL_TOKEN_METADATA_PROGRAM_ID, TokenStandard, fetchAllDigitalAssetWithTokenByOwnerAndMint, fetchDigitalAssetWithToken, fetchDigitalAssetWithTokenByMint, findMetadataPda, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
@@ -45,15 +45,20 @@ export default function NftInfo() {
   // Used by NFT 
   const [fractionAmount, setFractionAmount] = useState<number | string>(0);
 
-
   useEffect(() => {
     const fetchNftInfo = async () => {
-      if (!id) {
+      if (!id || !wallet) {
         return;
       }
 
       try {
-        const digitalAsset = await fetchDigitalAssetWithTokenByMint(umi, publicKey(id as string))
+        const allDigitalAssets = await fetchAllDigitalAssetWithTokenByOwnerAndMint(umi, publicKey(wallet.publicKey), publicKey(id as string))
+        if (allDigitalAssets.length === 0) {
+          toast.error("NFT does not exist")
+          return;
+        }
+        
+        const digitalAsset = allDigitalAssets[0]
         const nftJson = await umi.downloader.downloadJson<NftJsonType>(digitalAsset.metadata.uri);
 
         const asset = {
@@ -213,6 +218,11 @@ export default function NftInfo() {
 
     if (!asset) {
       toast.error("Please input an amount to fractionalize thats greater than 0")
+      return;
+    }
+
+    if (!fractionDetails || asset.token.amount < fractionDetails.sharesAmount ) {
+      toast.error("You do not own enough shares to un-fractionalize")
       return;
     }
 
